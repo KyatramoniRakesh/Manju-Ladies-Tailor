@@ -5,16 +5,20 @@ import ServiceDetails from "./pages/ServiceDetails";
 import Admin from "./pages/Admin";
 import Designs from "./pages/Designs";
 import EmbroideryDesigns from "./pages/EmbroideryDesigns";
+import ContactPage from "./pages/ContactPage";
+import ScrollToTop from "./components/ScrollToTop";
 
 function App() {
   return (
     <Router>
+      <ScrollToTop />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/services" element={<Services />} />
         <Route path="/services/:type" element={<ServiceDetails />} />
         <Route path="/designs" element={<Designs />} />
         <Route path="/embroidery-designs" element={<EmbroideryDesigns />} />
+        <Route path="/contact" element={<ContactPage />} />
         <Route path="/admin" element={<Admin />} />
       </Routes>
     </Router>

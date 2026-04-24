@@ -1,4 +1,5 @@
-import { SHOP_ADDRESS, WHATSAPP_NUMBER } from "../data/servicesData";
+import { Link } from "react-router-dom";
+import { SHOP_ADDRESS, SHOP_EMAIL, WHATSAPP_NUMBER } from "../data/servicesData";
 
 const Contact = () => {
   return (
@@ -14,15 +15,21 @@ const Contact = () => {
           <div className="mt-8 space-y-3 text-gray-700">
             <p>{SHOP_ADDRESS}</p>
             <p>+91 7893767001</p>
+            <p>{SHOP_EMAIL}</p>
           </div>
-          <a
-            href={`https://wa.me/${WHATSAPP_NUMBER}`}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-8 inline-flex bg-green-500 px-6 py-3 font-semibold text-white hover:bg-green-600"
-          >
-            Chat on WhatsApp
-          </a>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <a
+              href={`https://wa.me/${WHATSAPP_NUMBER}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex bg-green-500 px-6 py-3 font-semibold text-white hover:bg-green-600"
+            >
+              Chat on WhatsApp
+            </a>
+            <Link to="/contact" className="inline-flex bg-[#9D174D] px-6 py-3 font-semibold text-white hover:bg-[#831843]">
+              Contact Page
+            </Link>
+          </div>
         </div>
 
         <iframe

@@ -1,16 +1,22 @@
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, Pagination } from "swiper/modules";
+import { useLocation } from "react-router-dom";
 import { getServiceById, WHATSAPP_NUMBER } from "../data/servicesData";
 
 const ProductCard = ({ item, onClick }) => {
+  const location = useLocation();
   const images = item.images || [];
   const tags = item.tags || [];
   const service = getServiceById(item.service);
   const serviceLabel = service?.shortName || (item.service === "embroidery" ? "Embroidery" : item.service || "Design");
-  const enquiry = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hi, I want to enquire about ${item.name}`)}`;
+  const itemLink =
+    typeof window !== "undefined"
+      ? `${window.location.origin}${location.pathname}#${item.id}`
+      : location.pathname;
+  const enquiry = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hi, I want to enquire about ${item.name}.\nCategory: ${item.category}\nItem link: ${itemLink}\nImage: ${images[0] || ""}`)}`;
 
   return (
-    <div className="overflow-hidden bg-white shadow-sm ring-1 ring-gray-200 transition hover:-translate-y-1 hover:shadow-xl">
+    <div id={item.id} className="overflow-hidden bg-white shadow-sm ring-1 ring-gray-200 transition hover:-translate-y-1 hover:shadow-xl">
       {images.length > 1 ? (
         <Swiper modules={[Navigation, Pagination]} navigation pagination>
           {images.map((img, i) => (

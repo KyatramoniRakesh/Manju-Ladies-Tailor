@@ -1,27 +1,16 @@
 import { useState } from "react";
-import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { SHOP_NAME, WHATSAPP_NUMBER } from "../data/servicesData";
 
 const navItems = [
   { label: "Home", path: "/" },
   { label: "Embroidery Designs", path: "/embroidery-designs" },
   { label: "Services", path: "/services" },
-  { label: "Contact", section: "contact" },
+  { label: "Contact", path: "/contact" },
 ];
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const goToSection = (section) => {
-    setOpen(false);
-    if (location.pathname !== "/") {
-      navigate("/", { state: { scrollTo: section } });
-      return;
-    }
-    document.getElementById(section)?.scrollIntoView({ behavior: "smooth" });
-  };
 
   return (
     <nav className="fixed inset-x-0 top-0 z-50 border-b border-gray-200 bg-white/90 backdrop-blur">
@@ -44,15 +33,7 @@ const Navbar = () => {
               >
                 {item.label}
               </NavLink>
-            ) : (
-              <button
-                key={item.label}
-                onClick={() => goToSection(item.section)}
-                className="text-sm font-medium text-gray-700 transition hover:text-[#9D174D]"
-              >
-                {item.label}
-              </button>
-            )
+            ) : null
           )}
         </div>
 
@@ -68,9 +49,20 @@ const Navbar = () => {
         <button
           onClick={() => setOpen(!open)}
           aria-label="Toggle navigation menu"
-          className="text-sm font-semibold text-[#9D174D] md:hidden"
+          className="inline-flex h-10 w-10 items-center justify-center text-[#9D174D] md:hidden"
         >
-          {open ? "Close" : "Menu"}
+          {open ? (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-6 w-6">
+              <path d="M6 6 18 18" />
+              <path d="M18 6 6 18" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-6 w-6">
+              <path d="M4 7h16" />
+              <path d="M4 12h16" />
+              <path d="M4 17h16" />
+            </svg>
+          )}
         </button>
       </div>
 
@@ -82,11 +74,7 @@ const Navbar = () => {
                 <Link key={item.label} to={item.path} onClick={() => setOpen(false)}>
                   {item.label}
                 </Link>
-              ) : (
-                <button key={item.label} onClick={() => goToSection(item.section)} className="text-left">
-                  {item.label}
-                </button>
-              )
+              ) : null
             )}
             <a
               href={`https://wa.me/${WHATSAPP_NUMBER}`}

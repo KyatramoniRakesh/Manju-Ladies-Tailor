@@ -1,6 +1,12 @@
 export const WHATSAPP_NUMBER = "917893767001";
 export const SHOP_NAME = "Manju Ladies Tailors";
 export const SHOP_ADDRESS = "Manju ladies tailor KP street, Jadcherla, Mahabubnagar, Telangana 509406";
+export const SHOP_EMAIL = "manjula.rk7893@gmail.com";
+export const socialLinks = {
+  instagram: "#",
+  facebook: "#",
+  youtube: "#",
+};
 
 const fabricA = "https://images.unsplash.com/photo-1603252109303-2751441dd157?q=80&w=1200";
 const fabricB = "https://images.unsplash.com/photo-1581044777550-4cfa60707c03?q=80&w=1200";
