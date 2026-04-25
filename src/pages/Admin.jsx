@@ -426,6 +426,12 @@ const Admin = () => {
         throw new Error(errorData.message || "Could not update website image.");
       }
 
+      const updatedAsset = await response.json();
+
+      setSiteAssets(current => {
+        const remaining = current.filter(asset => asset.key !== updatedAsset.key);
+        return [...remaining, updatedAsset].sort((a, b) => a.key.localeCompare(b.key));
+      });
       setSiteAssetFiles(current => {
         const next = { ...current };
         delete next[assetKey];
@@ -564,7 +570,7 @@ const Admin = () => {
 
           <div className="mt-6 grid gap-5 lg:grid-cols-2">
             {filteredSiteAssets.map(asset => {
-              const currentImage = siteAssetMap[asset.key]?.image || asset.defaultImage;
+              const currentImage = getImageUrl(siteAssetMap[asset.key]?.image) || asset.defaultImage;
               return (
                 <div key={asset.key} className="grid gap-4 border border-gray-200 p-4 md:grid-cols-[180px_1fr]">
                   <img src={currentImage} alt={asset.label} className="h-36 w-full object-cover" />

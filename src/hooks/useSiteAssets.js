@@ -2,6 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { API_URL } from "../config";
 import { defaultSiteAssetMap } from "../data/siteAssets";
 
+const getAssetUrl = (image) => {
+  if (!image) return "";
+  return image.startsWith("http") ? image : `${API_URL}${image}`;
+};
+
 const useSiteAssets = () => {
   const [overrides, setOverrides] = useState({});
 
@@ -13,7 +18,7 @@ const useSiteAssets = () => {
       .then(data => {
         if (!cancelled) {
           const nextOverrides = (data || []).reduce((map, asset) => {
-            map[asset.key] = asset.image;
+            map[asset.key] = getAssetUrl(asset.image);
             return map;
           }, {});
           setOverrides(nextOverrides);
