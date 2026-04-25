@@ -7,6 +7,7 @@ const ProductCard = ({ item, onClick }) => {
   const location = useLocation();
   const images = item.images || [];
   const tags = item.tags || [];
+  const hasImages = images.length > 0;
   const service = getServiceById(item.service);
   const serviceLabel = service?.shortName || (item.service === "embroidery" ? "Embroidery" : item.service || "Design");
   const itemLink =
@@ -30,13 +31,21 @@ const ProductCard = ({ item, onClick }) => {
             </SwiperSlide>
           ))}
         </Swiper>
-      ) : (
+      ) : hasImages ? (
         <img
-          src={images[0] || "https://placehold.co/800x600?text=Design"}
+          src={images[0]}
           alt={item.name}
-          onClick={() => images[0] && onClick(images[0])}
+          onClick={() => onClick(images[0])}
           className="h-72 w-full cursor-pointer object-cover"
         />
+      ) : (
+        <div className="flex h-72 items-end bg-gradient-to-br from-[#1F2937] via-[#6B214E] to-[#9D174D] p-6 text-white">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#FBBF24]">{serviceLabel}</p>
+            <h3 className="mt-3 max-w-[16rem] text-2xl font-semibold leading-tight">{item.name}</h3>
+            <p className="mt-2 text-sm text-white/80">{item.category}</p>
+          </div>
+        </div>
       )}
 
       <div className="p-5">

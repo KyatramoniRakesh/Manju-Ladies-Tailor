@@ -5,6 +5,16 @@ param(
 )
 
 if (-not $MongoUri) {
+  $envFile = Join-Path (Split-Path $PSScriptRoot -Parent) "backend\.env"
+  if (Test-Path -LiteralPath $envFile) {
+    $line = Get-Content -Path $envFile | Where-Object { $_ -match '^MONGODB_URI=' } | Select-Object -First 1
+    if ($line) {
+      $MongoUri = $line.Substring("MONGODB_URI=".Length).Trim()
+    }
+  }
+}
+
+if (-not $MongoUri) {
   Write-Error "Set MONGODB_URI first, or pass -MongoUri."
   exit 1
 }

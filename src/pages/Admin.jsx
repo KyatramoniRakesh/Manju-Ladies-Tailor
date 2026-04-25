@@ -20,6 +20,13 @@ const emptyForm = {
   images: [],
 };
 
+const emptyErrors = {
+  name: "",
+  service: "",
+  category: "",
+  images: "",
+};
+
 const getImageUrl = (image) => {
   if (!image) return "";
   return image.startsWith("http") ? image : `${API_URL}${image}`;
@@ -40,6 +47,9 @@ const Admin = () => {
   const [editForm, setEditForm] = useState(null);
   const [designs, setDesigns] = useState([]);
   const [status, setStatus] = useState("");
+  const [statusTone, setStatusTone] = useState("neutral");
+  const [formErrors, setFormErrors] = useState(emptyErrors);
+  const [editErrors, setEditErrors] = useState(emptyErrors);
   const [refreshKey, setRefreshKey] = useState(0);
   const [productSearch, setProductSearch] = useState("");
   const [serviceFilter, setServiceFilter] = useState("All");
@@ -182,13 +192,31 @@ const Admin = () => {
 
   const updateFormService = (service) => {
     const options = categoryOptionsFor(service);
+    setFormErrors(current => ({ ...current, service: "", category: "" }));
     setForm({ ...form, service, category: options[0] || "" });
   };
 
   const updateEditService = (service) => {
     const options = categoryOptionsFor(service);
+    setEditErrors(current => ({ ...current, service: "", category: "" }));
     setEditForm({ ...editForm, service, category: options[0] || "" });
   };
+
+  const getUploadErrors = (source) => ({
+    name: source.name.trim() ? "" : "Enter a product or design name.",
+    service: source.service ? "" : "Choose the service where this product should appear.",
+    category: source.category ? "" : "Choose the correct category.",
+    images: source.images.length > 0 ? "" : "Select at least one image to upload.",
+  });
+
+  const getEditErrors = (source) => ({
+    name: source.name.trim() ? "" : "Enter a product or design name.",
+    service: source.service ? "" : "Choose the service where this product should appear.",
+    category: source.category ? "" : "Choose the correct category.",
+    images: "",
+  });
+
+  const hasErrors = (errors) => Object.values(errors).some(Boolean);
 
   const buildData = (source) => {
     const data = new FormData();
@@ -202,18 +230,23 @@ const Admin = () => {
 
   const clearUpload = () => {
     setForm(emptyForm);
+    setFormErrors(emptyErrors);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   };
 
   const handleSubmit = async () => {
-    if (!form.name || !form.category || !form.service || form.images.length === 0) {
-      setStatus("Please fill name, category, service, and choose at least one image.");
+    const errors = getUploadErrors(form);
+    setFormErrors(errors);
+    if (hasErrors(errors)) {
+      setStatusTone("error");
+      setStatus("Please correct the highlighted fields before uploading.");
       return;
     }
 
     setStatus("Uploading...");
+    setStatusTone("neutral");
 
     try {
       const response = await fetch(`${API_URL}/api/designs`, {
@@ -229,9 +262,11 @@ const Admin = () => {
 
       clearUpload();
       setStatus("Uploaded successfully.");
+      setStatusTone("success");
       setRefreshKey(key => key + 1);
     } catch (error) {
       setStatus(error.message);
+      setStatusTone("error");
     }
   };
 
@@ -248,12 +283,16 @@ const Admin = () => {
   };
 
   const saveEdit = async () => {
-    if (!editForm.name || !editForm.category || !editForm.service) {
-      setStatus("Edit needs name, category, and service.");
+    const errors = getEditErrors(editForm);
+    setEditErrors(errors);
+    if (hasErrors(errors)) {
+      setStatusTone("error");
+      setStatus("Please correct the highlighted fields before saving.");
       return;
     }
 
     setStatus("Saving...");
+    setStatusTone("neutral");
 
     try {
       const response = await fetch(`${API_URL}/api/designs/${editForm.id}`, {
@@ -272,9 +311,11 @@ const Admin = () => {
         editFileInputRef.current.value = "";
       }
       setStatus("Updated successfully.");
+      setStatusTone("success");
       setRefreshKey(key => key + 1);
     } catch (error) {
       setStatus(error.message);
+      setStatusTone("error");
     }
   };
 
@@ -283,6 +324,7 @@ const Admin = () => {
     if (!confirmed) return;
 
     setStatus("Deleting...");
+    setStatusTone("neutral");
 
     try {
       const response = await fetch(`${API_URL}/api/designs/${design._id}`, {
@@ -296,9 +338,11 @@ const Admin = () => {
       }
 
       setStatus("Deleted successfully.");
+      setStatusTone("success");
       setRefreshKey(key => key + 1);
     } catch (error) {
       setStatus(error.message);
+      setStatusTone("error");
     }
   };
 
@@ -385,21 +429,73 @@ const Admin = () => {
             <h2 className="text-xl font-semibold text-gray-950">Upload Product</h2>
             <p className="mt-1 text-sm text-gray-500">Choose service first, then select the correct category.</p>
             <div className="mt-5 grid gap-4">
-              <input className="border border-gray-200 p-3 outline-none focus:border-[#9D174D]" placeholder="Product or design name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
-              <select className="border border-gray-200 p-3 outline-none focus:border-[#9D174D]" value={form.service} onChange={e => updateFormService(e.target.value)}>
+              {status && (
+                <div
+                  className={`border px-4 py-3 text-sm ${
+                    statusTone === "error"
+                      ? "border-red-200 bg-red-50 text-red-700"
+                      : statusTone === "success"
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                        : "border-gray-200 bg-gray-50 text-gray-700"
+                  }`}
+                >
+                  {status}
+                </div>
+              )}
+              <div>
+                <input
+                  className={`w-full border p-3 outline-none focus:border-[#9D174D] ${
+                    formErrors.name ? "border-red-400 bg-red-50/40" : "border-gray-200"
+                  }`}
+                  placeholder="Product or design name"
+                  value={form.name}
+                  onChange={e => {
+                    setForm({ ...form, name: e.target.value });
+                    setFormErrors(current => ({ ...current, name: "" }));
+                  }}
+                />
+                {formErrors.name && <p className="mt-2 text-sm font-medium text-red-600">{formErrors.name}</p>}
+              </div>
+              <div>
+                <select className={`w-full border p-3 outline-none focus:border-[#9D174D] ${formErrors.service ? "border-red-400 bg-red-50/40" : "border-gray-200"}`} value={form.service} onChange={e => updateFormService(e.target.value)}>
                 <option value="">Select service</option>
                 {uploadServiceList.map(service => <option key={service.id} value={service.id}>{service.name}</option>)}
-              </select>
-              <select className="border border-gray-200 p-3 outline-none focus:border-[#9D174D]" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} disabled={!form.service}>
-                <option value="">Select category</option>
-                {categoryOptionsFor(form.service).map(category => <option key={category} value={category}>{category}</option>)}
-              </select>
+                </select>
+                {formErrors.service && <p className="mt-2 text-sm font-medium text-red-600">{formErrors.service}</p>}
+              </div>
+              <div>
+                <select
+                  className={`w-full border p-3 outline-none focus:border-[#9D174D] ${formErrors.category ? "border-red-400 bg-red-50/40" : "border-gray-200"}`}
+                  value={form.category}
+                  onChange={e => {
+                    setForm({ ...form, category: e.target.value });
+                    setFormErrors(current => ({ ...current, category: "" }));
+                  }}
+                  disabled={!form.service}
+                >
+                  <option value="">Select category</option>
+                  {categoryOptionsFor(form.service).map(category => <option key={category} value={category}>{category}</option>)}
+                </select>
+                {formErrors.category && <p className="mt-2 text-sm font-medium text-red-600">{formErrors.category}</p>}
+              </div>
               <input className="border border-gray-200 p-3 outline-none focus:border-[#9D174D]" placeholder="Tags, example: bridal, stone, heavy" value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })} />
-              <input ref={fileInputRef} className="border border-gray-200 p-3" type="file" multiple accept="image/*" onChange={e => setForm({ ...form, images: [...e.target.files] })} />
+              <div>
+                <input
+                  ref={fileInputRef}
+                  className={`w-full border p-3 ${formErrors.images ? "border-red-400 bg-red-50/40" : "border-gray-200"}`}
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={e => {
+                    setForm({ ...form, images: [...e.target.files] });
+                    setFormErrors(current => ({ ...current, images: "" }));
+                  }}
+                />
+                {formErrors.images && <p className="mt-2 text-sm font-medium text-red-600">{formErrors.images}</p>}
+              </div>
               <button className="bg-[#9D174D] px-6 py-3 font-semibold text-white hover:bg-[#831843]" onClick={handleSubmit}>
                 Upload Product
               </button>
-              {status && <p className="text-sm text-gray-700">{status}</p>}
               <div className="grid grid-cols-2 gap-3">
                 {previews.map(preview => (
                   <img key={preview.url} src={preview.url} alt={preview.name} className="h-28 w-full object-cover" />
@@ -462,13 +558,36 @@ const Admin = () => {
                 <button onClick={() => setEditForm(null)} className="text-sm font-semibold text-gray-600">Close</button>
               </div>
               <div className="mt-5 grid gap-4">
-                <input className="border border-gray-200 p-3 outline-none focus:border-[#9D174D]" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} />
-                <select className="border border-gray-200 p-3 outline-none focus:border-[#9D174D]" value={editForm.service} onChange={e => updateEditService(e.target.value)}>
+                <div>
+                  <input
+                    className={`w-full border p-3 outline-none focus:border-[#9D174D] ${editErrors.name ? "border-red-400 bg-red-50/40" : "border-gray-200"}`}
+                    value={editForm.name}
+                    onChange={e => {
+                      setEditForm({ ...editForm, name: e.target.value });
+                      setEditErrors(current => ({ ...current, name: "" }));
+                    }}
+                  />
+                  {editErrors.name && <p className="mt-2 text-sm font-medium text-red-600">{editErrors.name}</p>}
+                </div>
+                <div>
+                  <select className={`w-full border p-3 outline-none focus:border-[#9D174D] ${editErrors.service ? "border-red-400 bg-red-50/40" : "border-gray-200"}`} value={editForm.service} onChange={e => updateEditService(e.target.value)}>
                   {uploadServiceList.map(service => <option key={service.id} value={service.id}>{service.name}</option>)}
-                </select>
-                <select className="border border-gray-200 p-3 outline-none focus:border-[#9D174D]" value={editForm.category} onChange={e => setEditForm({ ...editForm, category: e.target.value })}>
-                  {categoryOptionsFor(editForm.service).map(category => <option key={category} value={category}>{category}</option>)}
-                </select>
+                  </select>
+                  {editErrors.service && <p className="mt-2 text-sm font-medium text-red-600">{editErrors.service}</p>}
+                </div>
+                <div>
+                  <select
+                    className={`w-full border p-3 outline-none focus:border-[#9D174D] ${editErrors.category ? "border-red-400 bg-red-50/40" : "border-gray-200"}`}
+                    value={editForm.category}
+                    onChange={e => {
+                      setEditForm({ ...editForm, category: e.target.value });
+                      setEditErrors(current => ({ ...current, category: "" }));
+                    }}
+                  >
+                    {categoryOptionsFor(editForm.service).map(category => <option key={category} value={category}>{category}</option>)}
+                  </select>
+                  {editErrors.category && <p className="mt-2 text-sm font-medium text-red-600">{editErrors.category}</p>}
+                </div>
                 <input className="border border-gray-200 p-3 outline-none focus:border-[#9D174D]" value={editForm.tags} onChange={e => setEditForm({ ...editForm, tags: e.target.value })} />
                 <div className="grid grid-cols-3 gap-3">
                   {editForm.currentImages.map(image => (

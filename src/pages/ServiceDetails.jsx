@@ -59,7 +59,12 @@ const ServiceDetails = () => {
       images: (item.images || []).map(img => img.startsWith("http") ? img : `${API_URL}${img}`),
     }));
 
-    return [...savedItems, ...(servicesData[type] || [])];
+    const dummyItems = (servicesData[type] || []).map(item => ({
+      ...item,
+      images: [],
+    }));
+
+    return [...savedItems, ...dummyItems];
   }, [backendItems, type]);
 
   const categories = ["All", ...new Set(items.map(i => i.category).filter(Boolean))];
