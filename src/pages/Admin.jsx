@@ -8,6 +8,9 @@ import {
 import { API_URL } from "../config";
 
 const tokenKey = "manju-admin-token";
+const loginTimeKey = "manju-admin-login-time";
+const maxSessionMs = 60 * 60 * 1000;
+const inactivityMs = 30 * 60 * 1000;
 
 const emptyForm = {
   name: "",
@@ -47,6 +50,45 @@ const Admin = () => {
   );
 
   const authHeaders = token ? { "x-admin-token": token } : {};
+
+  useEffect(() => {
+    if (!token) {
+      return undefined;
+    }
+
+    const logoutNow = () => {
+      localStorage.removeItem(tokenKey);
+      localStorage.removeItem(loginTimeKey);
+      setToken("");
+      setDesigns([]);
+      setStatus("Admin session expired. Please login again.");
+    };
+
+    const loginAt = Number(localStorage.getItem(loginTimeKey) || Date.now());
+    const age = Date.now() - loginAt;
+
+    if (age >= maxSessionMs) {
+      logoutNow();
+      return undefined;
+    }
+
+    let inactivityTimer = window.setTimeout(logoutNow, inactivityMs);
+    const activityEvents = ["mousemove", "keydown", "mousedown", "touchstart", "scroll"];
+    const resetTimer = () => {
+      window.clearTimeout(inactivityTimer);
+      inactivityTimer = window.setTimeout(logoutNow, inactivityMs);
+    };
+
+    const expiryTimer = window.setTimeout(logoutNow, maxSessionMs - age);
+
+    activityEvents.forEach(event => window.addEventListener(event, resetTimer));
+
+    return () => {
+      window.clearTimeout(inactivityTimer);
+      window.clearTimeout(expiryTimer);
+      activityEvents.forEach(event => window.removeEventListener(event, resetTimer));
+    };
+  }, [token]);
 
   useEffect(() => {
     let cancelled = false;
@@ -122,6 +164,7 @@ const Admin = () => {
 
       const data = await response.json();
       localStorage.setItem(tokenKey, data.token);
+      localStorage.setItem(loginTimeKey, String(Date.now()));
       setToken(data.token);
       setPassword("");
       setLoginStatus("");
@@ -132,6 +175,7 @@ const Admin = () => {
 
   const logout = () => {
     localStorage.removeItem(tokenKey);
+    localStorage.removeItem(loginTimeKey);
     setToken("");
     setDesigns([]);
   };
@@ -265,6 +309,7 @@ const Admin = () => {
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#9D174D]">Admin Login</p>
           <h1 className="mt-3 font-heading text-4xl font-bold text-gray-950">{SHOP_NAME}</h1>
           <p className="mt-3 text-sm text-gray-600">Login to upload, edit, or delete products.</p>
+          <p className="mt-2 text-xs text-gray-500">Auto logout after 30 minutes of inactivity. Maximum session 1 hour.</p>
           <input
             type="password"
             value={password}

@@ -104,3 +104,27 @@ Deploy the frontend, then update Render `CLIENT_ORIGIN` with the final Vercel do
 - Use a strong `ADMIN_PASSWORD`.
 - Cloudinary is recommended for image storage before public launch. The app now supports Cloudinary directly through backend environment variables.
 - Use the backend health route after deploy: `/api/health`
+
+## Backups
+
+Install MongoDB Database Tools:
+
+https://www.mongodb.com/try/download/database-tools
+
+Run a dated backup from PowerShell:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\backup-mongodb.ps1 -MongoUri "your-mongodb-uri"
+```
+
+Or set `MONGODB_URI` in your shell first and run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\backup-mongodb.ps1
+```
+
+The script creates backups in:
+
+```text
+D:\Backups\manju-tailors
+```

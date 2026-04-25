@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 const getJwtSecret = () => process.env.ADMIN_JWT_SECRET || process.env.ADMIN_PASSWORD;
 
 export const signAdminToken = () =>
-  jwt.sign({ role: "admin" }, getJwtSecret(), { expiresIn: "12h" });
+  jwt.sign({ role: "admin" }, getJwtSecret(), { expiresIn: "1h" });
 
 export const requireAdmin = (req, res, next) => {
   const token = req.header("x-admin-token");
