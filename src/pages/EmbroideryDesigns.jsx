@@ -9,6 +9,7 @@ import {
   WHATSAPP_NUMBER,
 } from "../data/servicesData";
 import { API_URL } from "../config";
+import useSiteAssets from "../hooks/useSiteAssets";
 
 const inferEmbroideryCategory = (item) => {
   const text = `${item.name} ${item.category} ${(item.tags || []).join(" ")}`.toLowerCase();
@@ -21,6 +22,7 @@ const inferEmbroideryCategory = (item) => {
 
 const EmbroideryDesigns = () => {
   const resultsRef = useRef(null);
+  const siteAssets = useSiteAssets();
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [selectedImg, setSelectedImg] = useState(null);
@@ -64,7 +66,6 @@ const EmbroideryDesigns = () => {
 
     const dummy = servicesData.embroidery.map(item => ({
       ...item,
-      images: [],
       embroideryCategory: item.embroideryCategory || inferEmbroideryCategory(item),
     }));
 
@@ -152,20 +153,23 @@ const EmbroideryDesigns = () => {
                 <button
                   key={category.id}
                   onClick={() => goToResults(category.id)}
-                  className={`group text-left shadow-sm ring-1 transition hover:-translate-y-1 hover:shadow-xl ${
+                  className={`group overflow-hidden text-left shadow-sm ring-1 transition hover:-translate-y-1 hover:shadow-xl ${
                     categoryFilter === category.id ? "ring-[#9D174D]" : "ring-gray-200"
                   }`}
                 >
-                  <div className="bg-white p-6">
-                    <div className="flex items-start justify-between gap-4">
-                      <h3 className="text-xl font-semibold text-gray-950">{category.name}</h3>
-                      <span className="bg-[#FDF2F8] px-3 py-1 text-xs font-semibold text-[#9D174D]">
-                        {categoryCounts[category.id] || 0}
-                      </span>
+                  <div className="relative h-44 overflow-hidden">
+                    <img
+                      src={siteAssets[`embroidery-category-${category.id}`] || category.image}
+                      alt={category.name}
+                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+                    <div className="absolute bottom-4 left-4 right-4 text-white">
+                      <h3 className="text-xl font-semibold">{category.name}</h3>
+                      <p className="mt-1 text-xs text-gray-200">{categoryCounts[category.id] || 0} designs</p>
                     </div>
-                    <p className="mt-4 text-sm leading-6 text-gray-600">{category.description}</p>
-                    <p className="mt-6 text-sm font-semibold text-[#9D174D]">View designs</p>
                   </div>
+                  <p className="bg-white p-4 text-sm leading-6 text-gray-600">{category.description}</p>
                 </button>
               ))}
             </div>

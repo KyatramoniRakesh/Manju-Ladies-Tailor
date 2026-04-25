@@ -61,7 +61,6 @@ const ServiceDetails = () => {
 
     const dummyItems = (servicesData[type] || []).map(item => ({
       ...item,
-      images: [],
     }));
 
     return [...savedItems, ...dummyItems];

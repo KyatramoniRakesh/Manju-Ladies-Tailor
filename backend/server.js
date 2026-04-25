@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import designRoutes from "./routes/designRoutes.js";
+import siteAssetRoutes from "./routes/siteAssetRoutes.js";
 import { signAdminToken } from "./middleware/adminAuth.js";
 
 dotenv.config();
@@ -72,6 +73,7 @@ app.get("/api/health", (req, res) => {
 });
 
 app.use("/api/designs", designRoutes);
+app.use("/api/site-assets", siteAssetRoutes);
 
 app.post("/api/admin/login", (req, res) => {
   if (!ADMIN_PASSWORD) {

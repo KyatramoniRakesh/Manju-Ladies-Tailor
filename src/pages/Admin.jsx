@@ -5,6 +5,7 @@ import {
   SHOP_NAME,
   uploadServiceList,
 } from "../data/servicesData";
+import { siteAssetDefinitions, siteAssetSections } from "../data/siteAssets";
 import { API_URL } from "../config";
 
 const tokenKey = "manju-admin-token";
@@ -53,6 +54,13 @@ const Admin = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [productSearch, setProductSearch] = useState("");
   const [serviceFilter, setServiceFilter] = useState("All");
+  const [categoryFilter, setCategoryFilter] = useState("All");
+  const [siteAssets, setSiteAssets] = useState([]);
+  const [siteAssetSearch, setSiteAssetSearch] = useState("");
+  const [siteAssetSection, setSiteAssetSection] = useState("All");
+  const [siteAssetFiles, setSiteAssetFiles] = useState({});
+  const [siteAssetStatus, setSiteAssetStatus] = useState("");
+  const [siteAssetStatusTone, setSiteAssetStatusTone] = useState("neutral");
 
   const previews = useMemo(
     () => form.images.map(file => ({ name: file.name, url: URL.createObjectURL(file) })),
@@ -103,11 +111,26 @@ const Admin = () => {
   useEffect(() => {
     let cancelled = false;
 
+    const loadSiteAssets = fetch(`${API_URL}/api/site-assets`)
+      .then(response => (response.ok ? response.json() : []))
+      .then(data => {
+        if (!cancelled) {
+          setSiteAssets(data || []);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSiteAssets([]);
+        }
+      });
+
     if (!token) {
-      return undefined;
+      return () => {
+        cancelled = true;
+      };
     }
 
-    fetch(`${API_URL}/api/designs`, {
+    const loadDesigns = fetch(`${API_URL}/api/designs`, {
       headers: { "x-admin-token": token },
     })
       .then(response => {
@@ -124,8 +147,11 @@ const Admin = () => {
       .catch(error => {
         if (!cancelled) {
           setStatus(error.message);
+          setStatusTone("error");
         }
       });
+
+    Promise.all([loadSiteAssets, loadDesigns]);
 
     return () => {
       cancelled = true;
@@ -152,10 +178,37 @@ const Admin = () => {
 
     return designs.filter(design => {
       const matchesService = serviceFilter === "All" || design.service === serviceFilter;
+      const matchesCategory = categoryFilter === "All" || design.category === categoryFilter;
       const searchable = `${design.name} ${design.category} ${design.service} ${(design.tags || []).join(" ")}`.toLowerCase();
-      return matchesService && searchable.includes(query);
+      return matchesService && matchesCategory && searchable.includes(query);
     });
-  }, [designs, productSearch, serviceFilter]);
+  }, [designs, productSearch, serviceFilter, categoryFilter]);
+
+  const availableCategories = useMemo(() => {
+    const source = serviceFilter === "All"
+      ? designs
+      : designs.filter(design => design.service === serviceFilter);
+
+    return ["All", ...new Set(source.map(design => design.category).filter(Boolean))];
+  }, [designs, serviceFilter]);
+
+  const siteAssetMap = useMemo(
+    () => siteAssets.reduce((map, asset) => {
+      map[asset.key] = asset;
+      return map;
+    }, {}),
+    [siteAssets]
+  );
+
+  const filteredSiteAssets = useMemo(() => {
+    const query = siteAssetSearch.trim().toLowerCase();
+
+    return siteAssetDefinitions.filter(asset => {
+      const matchesSection = siteAssetSection === "All" || asset.section === siteAssetSection;
+      const searchable = `${asset.label} ${asset.section} ${asset.key}`.toLowerCase();
+      return matchesSection && searchable.includes(query);
+    });
+  }, [siteAssetSearch, siteAssetSection]);
 
   const handleLogin = async () => {
     setLoginStatus("Checking...");
@@ -346,6 +399,47 @@ const Admin = () => {
     }
   };
 
+  const updateSiteAsset = async (assetKey) => {
+    const file = siteAssetFiles[assetKey];
+
+    if (!file) {
+      setSiteAssetStatusTone("error");
+      setSiteAssetStatus("Choose an image before saving a website asset.");
+      return;
+    }
+
+    setSiteAssetStatusTone("neutral");
+    setSiteAssetStatus("Updating website image...");
+
+    try {
+      const data = new FormData();
+      data.append("image", file);
+
+      const response = await fetch(`${API_URL}/api/site-assets/${assetKey}`, {
+        method: "PUT",
+        headers: authHeaders,
+        body: data,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Could not update website image.");
+      }
+
+      setSiteAssetFiles(current => {
+        const next = { ...current };
+        delete next[assetKey];
+        return next;
+      });
+      setSiteAssetStatusTone("success");
+      setSiteAssetStatus("Website image updated successfully.");
+      setRefreshKey(key => key + 1);
+    } catch (error) {
+      setSiteAssetStatusTone("error");
+      setSiteAssetStatus(error.message);
+    }
+  };
+
   if (!token) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#FDF2F8] px-5">
@@ -413,7 +507,10 @@ const Admin = () => {
           {stats.byService.map(service => (
             <button
               key={service.id}
-              onClick={() => setServiceFilter(service.id)}
+              onClick={() => {
+                setServiceFilter(service.id);
+                setCategoryFilter("All");
+              }}
               className={`bg-white p-4 text-left shadow-sm ring-1 transition ${
                 serviceFilter === service.id ? "ring-[#9D174D]" : "ring-gray-200 hover:ring-[#9D174D]"
               }`}
@@ -422,6 +519,87 @@ const Admin = () => {
               <p className="mt-1 text-2xl font-bold text-[#9D174D]">{service.count}</p>
             </button>
           ))}
+        </section>
+
+        <section className="mt-6 bg-white p-6 shadow-sm ring-1 ring-gray-200">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-950">Website Images</h2>
+              <p className="mt-1 text-sm text-gray-500">Manage banner and card images used across the website.</p>
+            </div>
+            <p className="text-sm text-gray-500">{filteredSiteAssets.length} visible website images</p>
+          </div>
+
+          <div className="mt-5 grid gap-3 md:grid-cols-[1fr_240px]">
+            <input
+              value={siteAssetSearch}
+              onChange={event => setSiteAssetSearch(event.target.value)}
+              placeholder="Search banner or card image"
+              className="border border-gray-200 p-3 outline-none focus:border-[#9D174D]"
+            />
+            <select
+              value={siteAssetSection}
+              onChange={event => setSiteAssetSection(event.target.value)}
+              className="border border-gray-200 p-3 outline-none focus:border-[#9D174D]"
+            >
+              {siteAssetSections.map(section => (
+                <option key={section} value={section}>{section}</option>
+              ))}
+            </select>
+          </div>
+
+          {siteAssetStatus && (
+            <div
+              className={`mt-4 border px-4 py-3 text-sm ${
+                siteAssetStatusTone === "error"
+                  ? "border-red-200 bg-red-50 text-red-700"
+                  : siteAssetStatusTone === "success"
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    : "border-gray-200 bg-gray-50 text-gray-700"
+              }`}
+            >
+              {siteAssetStatus}
+            </div>
+          )}
+
+          <div className="mt-6 grid gap-5 lg:grid-cols-2">
+            {filteredSiteAssets.map(asset => {
+              const currentImage = siteAssetMap[asset.key]?.image || asset.defaultImage;
+              return (
+                <div key={asset.key} className="grid gap-4 border border-gray-200 p-4 md:grid-cols-[180px_1fr]">
+                  <img src={currentImage} alt={asset.label} className="h-36 w-full object-cover" />
+                  <div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <h3 className="text-lg font-semibold text-gray-950">{asset.label}</h3>
+                      <span className="bg-[#FDF2F8] px-3 py-1 text-xs font-semibold text-[#9D174D]">{asset.section}</span>
+                    </div>
+                    <p className="mt-2 text-xs text-gray-500">{asset.key}</p>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="border border-gray-200 p-3"
+                        onChange={event => {
+                          const file = event.target.files?.[0];
+                          if (!file) return;
+                          setSiteAssetFiles(current => ({ ...current, [asset.key]: file }));
+                        }}
+                      />
+                      <button
+                        onClick={() => updateSiteAsset(asset.key)}
+                        className="bg-[#9D174D] px-5 py-3 text-sm font-semibold text-white hover:bg-[#831843]"
+                      >
+                        Save Image
+                      </button>
+                    </div>
+                    {siteAssetFiles[asset.key] && (
+                      <p className="mt-2 text-sm text-gray-600">Selected: {siteAssetFiles[asset.key].name}</p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </section>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
@@ -520,10 +698,40 @@ const Admin = () => {
                 placeholder="Search products"
                 className="border border-gray-200 p-3 outline-none focus:border-[#9D174D]"
               />
-              <select value={serviceFilter} onChange={event => setServiceFilter(event.target.value)} className="border border-gray-200 p-3 outline-none focus:border-[#9D174D]">
+              <select
+                value={serviceFilter}
+                onChange={event => {
+                  setServiceFilter(event.target.value);
+                  setCategoryFilter("All");
+                }}
+                className="border border-gray-200 p-3 outline-none focus:border-[#9D174D]"
+              >
                 <option value="All">All services</option>
                 {uploadServiceList.map(service => <option key={service.id} value={service.id}>{service.name}</option>)}
               </select>
+            </div>
+            <div className="mt-3 grid gap-3 md:grid-cols-[240px_auto]">
+              <select
+                value={categoryFilter}
+                onChange={event => setCategoryFilter(event.target.value)}
+                className="border border-gray-200 p-3 outline-none focus:border-[#9D174D]"
+              >
+                {availableCategories.map(category => (
+                  <option key={category} value={category}>
+                    {category === "All" ? "All categories" : category}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={() => {
+                  setProductSearch("");
+                  setServiceFilter("All");
+                  setCategoryFilter("All");
+                }}
+                className="justify-self-start text-sm font-semibold text-[#9D174D]"
+              >
+                Clear product filters
+              </button>
             </div>
 
             <div className="mt-5 grid gap-4">

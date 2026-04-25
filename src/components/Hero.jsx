@@ -1,15 +1,17 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { SHOP_NAME, WHATSAPP_NUMBER } from "../data/servicesData";
-import heroBanner from "../assets/hero-tailor-banner.png";
+import useSiteAssets from "../hooks/useSiteAssets";
 
 const Hero = () => {
+  const siteAssets = useSiteAssets();
+
   return (
     <section
       className="relative min-h-[92vh] overflow-hidden pt-24 text-white"
       style={{
         backgroundImage:
-          `linear-gradient(90deg, rgba(17,24,39,0.86), rgba(131,24,67,0.36)), url(${heroBanner})`,
+          `linear-gradient(90deg, rgba(17,24,39,0.86), rgba(131,24,67,0.36)), url(${siteAssets["hero-banner"]})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
       }}
