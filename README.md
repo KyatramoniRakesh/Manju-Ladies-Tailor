@@ -36,7 +36,11 @@ Backend `backend/.env`:
 MONGODB_URI=your-mongodb-atlas-uri
 PORT=5000
 ADMIN_PASSWORD=your-strong-admin-password
+ADMIN_JWT_SECRET=your-long-random-secret
 CLIENT_ORIGIN=http://localhost:5173
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
 ```
 
 Run backend:
@@ -67,7 +71,11 @@ Set Render environment variables:
 ```env
 MONGODB_URI=your-mongodb-atlas-uri
 ADMIN_PASSWORD=your-strong-admin-password
+ADMIN_JWT_SECRET=your-long-random-secret
 CLIENT_ORIGIN=https://your-vercel-domain.vercel.app
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
 ```
 
 After deploy, copy the Render backend URL.
@@ -94,4 +102,5 @@ Deploy the frontend, then update Render `CLIENT_ORIGIN` with the final Vercel do
 - Never commit `.env` files.
 - Rotate the MongoDB password before public deployment.
 - Use a strong `ADMIN_PASSWORD`.
-- Uploaded files are currently stored on the backend filesystem. For production, move uploads to Cloudinary or S3.
+- Cloudinary is recommended for image storage before public launch. The app now supports Cloudinary directly through backend environment variables.
+- Use the backend health route after deploy: `/api/health`

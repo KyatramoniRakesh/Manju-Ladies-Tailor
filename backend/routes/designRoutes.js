@@ -1,23 +1,19 @@
 import express from "express";
 import multer from "multer";
 import fs from "fs";
+import path from "path";
+import { randomUUID } from "crypto";
 import Design from "../models/Design.js";
 import { requireAdmin } from "../middleware/adminAuth.js";
+import { cloudinary, hasCloudinaryConfig } from "../config/cloudinary.js";
 
 const router = express.Router();
 const uploadDir = "uploads/";
 
 fs.mkdirSync(uploadDir, { recursive: true });
 
-const storage = multer.diskStorage({
-  destination: uploadDir,
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + "-" + file.originalname);
-  },
-});
-
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (!file.mimetype.startsWith("image/")) {
@@ -30,13 +26,63 @@ const upload = multer({
 const parseTags = (tags = "") =>
   tags.split(",").map(tag => tag.trim()).filter(Boolean);
 
+const saveLocalFile = async (file) => {
+  const extension = path.extname(file.originalname) || ".jpg";
+  const filename = `${Date.now()}-${randomUUID()}${extension}`;
+  const targetPath = path.join(uploadDir, filename);
+
+  await fs.promises.writeFile(targetPath, file.buffer);
+
+  return `/uploads/${filename}`;
+};
+
+const uploadToCloudinary = (file) =>
+  new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder: "manju-ladies-tailors",
+        resource_type: "image",
+      },
+      (error, result) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(result.secure_url);
+        }
+      }
+    );
+
+    stream.end(file.buffer);
+  });
+
+const resolveImagePath = async (file) => {
+  if (hasCloudinaryConfig) {
+    return uploadToCloudinary(file);
+  }
+
+  return saveLocalFile(file);
+};
+
 const deleteUploadedFile = (imagePath) => {
-  if (!imagePath?.startsWith("/uploads/")) {
+  if (!imagePath) {
     return;
   }
 
-  const localPath = imagePath.replace(/^\/uploads\//, `${uploadDir}`);
-  fs.rm(localPath, { force: true }, () => {});
+  if (imagePath.startsWith("http")) {
+    const uploadSegment = imagePath.split("/upload/")[1];
+    const publicIdWithExt = uploadSegment?.split("/").slice(1).join("/");
+    const publicId = publicIdWithExt ? publicIdWithExt.replace(path.extname(publicIdWithExt), "") : null;
+
+    if (publicId) {
+      cloudinary.uploader.destroy(publicId).catch(() => {});
+    }
+    return;
+  }
+
+  if (imagePath.startsWith("/uploads/")) {
+    const localPath = imagePath.replace(/^\/uploads\//, `${uploadDir}`);
+    fs.rm(localPath, { force: true }, () => {});
+  }
 };
 
 const handleUploadErrors = (err, req, res, next) => {
@@ -70,7 +116,7 @@ router.post("/", requireAdmin, upload.array("images"), handleUploadErrors, async
       return res.status(400).json({ message: "Please upload at least one image." });
     }
 
-    const imagePaths = files.map(file => `/uploads/${file.filename}`);
+    const imagePaths = await Promise.all(files.map(resolveImagePath));
 
     const design = new Design({
       name: req.body.name,
@@ -101,7 +147,7 @@ router.put("/:id", requireAdmin, upload.array("images"), handleUploadErrors, asy
     design.service = req.body.service || design.service;
     design.tags = parseTags(req.body.tags);
 
-    const newImages = (req.files || []).map(file => `/uploads/${file.filename}`);
+    const newImages = await Promise.all((req.files || []).map(resolveImagePath));
     if (newImages.length > 0) {
       design.images.forEach(deleteUploadedFile);
       design.images = newImages;
